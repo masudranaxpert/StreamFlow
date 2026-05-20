@@ -1,9 +1,9 @@
 site_name: StreamFlow
 site_description: Video streaming and upload platform library for Python
-site_url: https://YOUR_USERNAME.github.io/streamflow/
+site_url: https://masudranaxpert.github.io/streamflow/
 
-repo_name: YOUR_USERNAME/streamflow
-repo_url: https://github.com/YOUR_USERNAME/streamflow
+repo_name: masudranaxpert/streamflow
+repo_url: https://github.com/masudranaxpert/streamflow
 
 theme:
   name: material
