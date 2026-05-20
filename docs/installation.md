@@ -3,19 +3,19 @@
 ## Requirements
 
 - Python 3.10 or higher
-- pip (or poetry, pdm, etc.)
+- pip
 
-## Install from PyPI
+## Install from GitHub
 
 ```bash
-pip install streamflow
+pip install git+https://github.com/masudranaxpert/StreamFlow.git
 ```
 
 ## Install from Source
 
 ```bash
-git clone https://github.com/username/streamflow
-cd streamflow
+git clone https://github.com/masudranaxpert/StreamFlow.git
+cd StreamFlow
 pip install -e .
 ```
 
@@ -24,25 +24,27 @@ pip install -e .
 For development with all dev dependencies:
 
 ```bash
-git clone https://github.com/username/streamflow
-cd streamflow
+git clone https://github.com/masudranaxpert/StreamFlow.git
+cd StreamFlow
 pip install -e ".[dev]"
 ```
 
 ## Dependencies
 
 Core dependencies (installed automatically):
-- `httpcloak>=1.6.6` - HTTP client
+- `httpx>=0.27.0` - HTTP client
 - `rich>=15.0.0` - Terminal formatting
 - `pycryptodome>=3.20.0` - AES encryption for master link decryption
 
 ## Verify Installation
 
+```bash
+streamflow help
+```
+
+Or in Python:
+
 ```python
 import streamflow
-from streamflow.platforms.streamembed import get_master_link
-
-# Quick test
-result = get_master_link("test")
-print(f"StreamFlow installed: {result}")
+print(f"StreamFlow version: {streamflow.__version__}")
 ```
