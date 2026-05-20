@@ -79,14 +79,19 @@ def _decrypt_response(cipher_hex: str, key_hex: str, iv_hex: str) -> dict:
 
 
 def _extract_master_txt_link(text: str | None) -> str | None:
-    """Extract master.txt URL using regex from any text."""
+    """Extract master.txt/master txt URL using regex/logic from any text."""
     if not text:
         return None
-    # Look for master.txt URL
     pattern = r'https?://[^\s"\'<>]+master\.txt[^\s"\'<>]*'
     match = re.search(pattern, text)
     if match:
         return match.group(0)
+    
+    urls = re.findall(r'https?://[^\s"\'<>]+', text)
+    for url in urls:
+        url_lower = url.lower()
+        if "master" in url_lower and ".txt" in url_lower:
+            return url
     return None
 
 
@@ -148,7 +153,7 @@ def get_master_link(
 
     resp = browser_get(
         video_url,
-        api=True,
+        api=False,
         timeout=timeout,
         tcp_proxy=tcp_proxy,
         udp_proxy=udp_proxy,
@@ -226,7 +231,8 @@ def get_master_link(
                         master_url = master_txt
             except Exception as e:
                 logger.warning(f"Failed to fetch cf_url: {e}")
-    else:
+
+    if not master_url:
         payload_str = str(payload)
         master_txt = _extract_master_txt_link(payload_str)
         if master_txt:

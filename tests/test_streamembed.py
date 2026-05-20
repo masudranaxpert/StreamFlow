@@ -224,6 +224,21 @@ class TeststreamembedMasterLink:
         assert AES_KEY_HEX == "6b69656d7469656e6d75613931316361"
         assert AES_IV_HEX == "313233343536373839306f6975797472"
 
+    def test_extract_master_txt_link(self) -> None:
+        from streamflow.platforms.streamembed.master_link import _extract_master_txt_link
+
+        # Test exact match
+        assert _extract_master_txt_link("https://example.com/master.txt") == "https://example.com/master.txt"
+        assert _extract_master_txt_link("some text https://example.com/path/master.txt?param=1 other text") == "https://example.com/path/master.txt?param=1"
+
+        # Test general match with master and .txt
+        assert _extract_master_txt_link("https://example.com/cf-master.12345.txt") == "https://example.com/cf-master.12345.txt"
+        assert _extract_master_txt_link("https://example.com/master/file.txt") == "https://example.com/master/file.txt"
+        
+        # Test no match
+        assert _extract_master_txt_link("https://example.com/master.m3u8") is None
+        assert _extract_master_txt_link("https://example.com/file.txt") is None
+
     def test_streamembed_live_master_link(self) -> None:
         """Test streamembed get_master_link with a real filecode."""
         from streamflow.platforms.streamembed import get_master_link
