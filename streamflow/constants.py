@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 PACKAGE_NAME = "streamflow"
-PACKAGE_VERSION = "0.1.3"
+PACKAGE_VERSION = "0.1.4"
 
 ACCEPT_ENCODING_IDENTITY = "identity"
 ACCEPT_ENCODING_FALLBACK = "gzip, deflate, br, zstd"
