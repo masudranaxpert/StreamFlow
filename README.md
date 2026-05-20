@@ -2,8 +2,6 @@
 
 **Multi-platform video streaming utilities for Python.**
 
-[![PyPI Version](https://img.shields.io/pypi/v/streamflow.svg)](https://pypi.org/project/streamflow/)
-[![Python](https://img.shields.io/pypi/pyversions/streamflow.svg)](https://pypi.org/project/streamflow/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -20,15 +18,17 @@
 
 ## Installation
 
+Install from GitHub:
+
 ```bash
-pip install streamflow
+pip install git+https://github.com/masudranaxpert/StreamFlow.git
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/streamflow.git
-cd streamflow
+git clone https://github.com/masudranaxpert/StreamFlow.git
+cd StreamFlow
 pip install -e .
 ```
 
@@ -86,7 +86,6 @@ for f in files:
 Test your m3u8 streams with free online players:
 
 - **[Livepush HLS Player](https://livepush.io/hls-player/index.html)** — Simple HLS stream tester
-- **[VideoJS Demo](https://testvideojs.vercel.app/)** — Video.js based player
 
 ---
 
