@@ -82,3 +82,4 @@ class StreamembedMasterLink:
     swarm_id: str | None = None
     torrent_trackers: list[str] | None = None
     ice_servers: list[dict] | None = None
+    raw: dict | None = None  # Full API response

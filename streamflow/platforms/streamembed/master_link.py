@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from Crypto.Cipher import AES  # type: ignore
 
@@ -75,6 +76,18 @@ def _decrypt_response(cipher_hex: str, key_hex: str, iv_hex: str) -> dict:
     json_str = unpadded.decode("utf-8", errors="strict")
     import json
     return json.loads(json_str)
+
+
+def _extract_master_txt_link(text: str | None) -> str | None:
+    """Extract master.txt URL using regex from any text."""
+    if not text:
+        return None
+    # Look for master.txt URL
+    pattern = r'https?://[^\s"\'<>]+master\.txt[^\s"\'<>]*'
+    match = re.search(pattern, text)
+    if match:
+        return match.group(0)
+    return None
 
 
 def _build_master_url(base_url: str, path: str) -> str:
@@ -155,6 +168,7 @@ def get_master_link(
             title=None,
             streaming_url="",
             thumbnail=None,
+            raw={"status_code": resp.status_code, "text": resp.text},
         )
 
     cipher_hex = (resp.text or "").strip()
@@ -164,6 +178,7 @@ def get_master_link(
             title=None,
             streaming_url="",
             thumbnail=None,
+            raw={"error": "empty_response"},
         )
 
     try:
@@ -175,6 +190,7 @@ def get_master_link(
             title=None,
             streaming_url="",
             thumbnail=None,
+            raw={"error": f"decryption_failed: {e}", "cipher_hex": cipher_hex[:100] + "..." if len(cipher_hex) > 100 else cipher_hex},
         )
 
     title = payload.get("title") or None
@@ -196,9 +212,58 @@ def get_master_link(
 
     master_path = payload.get("source") or payload.get("master") or payload.get("masterUrl") or ""
     if master_path:
-        master_url = _build_master_url(f"https://{effective_base}", master_path)
+        # Direct master path available
+        master_url = master_path
+    elif cf_url:
+        # cf_url available - check if it's a master.txt URL
+        master_txt = _extract_master_txt_link(cf_url)
+        if master_txt:
+            # cf_url itself is master.txt, fetch it to get master.m3u8
+            try:
+                resp = browser_get(master_txt, api=True, timeout=timeout)
+                if resp.status_code == 200:
+                    master_url = resp.text.strip()
+                else:
+                    master_url = ""
+            except Exception as e:
+                logger.warning(f"Failed to fetch master.txt from cf_url: {e}")
+                master_url = ""
+        else:
+            # cf_url is not master.txt, fetch it to find master.txt inside
+            try:
+                resp = browser_get(cf_url, api=True, timeout=timeout)
+                if resp.status_code == 200:
+                    master_txt = _extract_master_txt_link(resp.text)
+                    if master_txt:
+                        # Now fetch master.txt to get master.m3u8
+                        resp2 = browser_get(master_txt, api=True, timeout=timeout)
+                        if resp2.status_code == 200:
+                            master_url = resp2.text.strip()
+                        else:
+                            master_url = ""
+                    else:
+                        master_url = ""
+                else:
+                    master_url = ""
+            except Exception as e:
+                logger.warning(f"Failed to fetch cf_url: {e}")
+                master_url = ""
     else:
-        master_url = ""
+        # No cf_url - search for master.txt in full payload
+        payload_str = str(payload)
+        master_txt = _extract_master_txt_link(payload_str)
+        if master_txt:
+            try:
+                resp = browser_get(master_txt, api=True, timeout=timeout)
+                if resp.status_code == 200:
+                    master_url = resp.text.strip()
+                else:
+                    master_url = ""
+            except Exception as e:
+                logger.warning(f"Failed to fetch master.txt from payload: {e}")
+                master_url = ""
+        else:
+            master_url = ""
 
     return StreamembedMasterLink(
         filecode=filecode,
@@ -210,4 +275,5 @@ def get_master_link(
         swarm_id=swarm_id,
         torrent_trackers=torrent_trackers_list,
         ice_servers=ice_servers_list,
+        raw=payload,  # Full API response for debugging
     )

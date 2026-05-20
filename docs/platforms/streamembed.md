@@ -65,6 +65,7 @@ result = get_master_link(
 - `swarm_id` - Swarm ID
 - `torrent_trackers` - Torrent trackers list
 - `ice_servers` - ICE servers list
+- `raw` - Full API response dict (for debugging)
 
 ### Examples
 
