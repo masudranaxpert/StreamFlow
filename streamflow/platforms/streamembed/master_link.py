@@ -210,76 +210,37 @@ def get_master_link(
         if not isinstance(ice_servers_list, list):
             ice_servers_list = None
 
-    master_path = payload.get("source") or payload.get("master") or payload.get("masterUrl") or ""
-    if master_path:
-        # Direct master path available
-        master_url = master_path
-    elif cf_url:
-        # cf_url available - check if it's a master.txt URL
+    streaming_url = payload.get("source") or payload.get("master") or payload.get("masterUrl") or ""
+    master_url = ""
+
+    if cf_url:
         master_txt = _extract_master_txt_link(cf_url)
         if master_txt:
-            # cf_url itself is master.txt, fetch it to get master.m3u8
-            try:
-                resp = browser_get(master_txt, api=False, timeout=timeout)
-                if resp.status_code == 200:
-                    master_url = resp.text.strip()
-                else:
-                    logger.warning(f"Failed to fetch master.txt: status {resp.status_code}")
-                    master_url = ""
-            except Exception as e:
-                logger.warning(f"Failed to fetch master.txt from cf_url: {e}")
-                master_url = ""
+            master_url = master_txt
         else:
-            # cf_url is not master.txt, fetch it to find master.txt inside
             try:
                 resp = browser_get(cf_url, api=False, timeout=timeout)
                 if resp.status_code == 200:
                     master_txt = _extract_master_txt_link(resp.text)
                     if master_txt:
-                        # Now fetch master.txt to get master.m3u8
-                        resp2 = browser_get(master_txt, api=False, timeout=timeout)
-                        if resp2.status_code == 200:
-                            master_url = resp2.text.strip()
-                        else:
-                            logger.warning(f"Failed to fetch master.txt: status {resp2.status_code}")
-                            master_url = ""
-                    else:
-                        logger.warning("No master.txt link found in cf_url response")
-                        master_url = ""
-                else:
-                    logger.warning(f"Failed to fetch cf_url: status {resp.status_code}")
-                    master_url = ""
+                        master_url = master_txt
             except Exception as e:
                 logger.warning(f"Failed to fetch cf_url: {e}")
-                master_url = ""
     else:
-        # No cf_url - search for master.txt in full payload
         payload_str = str(payload)
         master_txt = _extract_master_txt_link(payload_str)
         if master_txt:
-            try:
-                resp = browser_get(master_txt, api=False, timeout=timeout)
-                if resp.status_code == 200:
-                    master_url = resp.text.strip()
-                else:
-                    logger.warning(f"Failed to fetch master.txt from payload: status {resp.status_code}")
-                    master_url = ""
-            except Exception as e:
-                logger.warning(f"Failed to fetch master.txt from payload: {e}")
-                master_url = ""
-        else:
-            logger.warning("No master.txt link found in payload")
-            master_url = ""
+            master_url = master_txt
 
     return StreamembedMasterLink(
         filecode=filecode,
         title=title,
-        streaming_url=master_url,
+        streaming_url=streaming_url,
         thumbnail=thumbnail,
         master_url=master_url,
         cf_url=cf_url,
         swarm_id=swarm_id,
         torrent_trackers=torrent_trackers_list,
         ice_servers=ice_servers_list,
-        raw=payload,  # Full API response for debugging
+        raw=payload,
     )
