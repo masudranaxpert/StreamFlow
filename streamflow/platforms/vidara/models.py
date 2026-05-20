@@ -10,6 +10,19 @@ class UploadData:
     title: str
     size: int
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> UploadData:
+        filecode = data.get("filecode")
+        title = data.get("title")
+        size = data.get("size")
+        if filecode is None:
+            raise ValueError("UploadData: missing 'filecode' field")
+        if title is None:
+            raise ValueError("UploadData: missing 'title' field")
+        if size is None:
+            raise ValueError("UploadData: missing 'size' field")
+        return cls(filecode=str(filecode), title=str(title), size=int(size))
+
 
 @dataclass(frozen=True, slots=True)
 class UploadResponse:
@@ -20,16 +33,14 @@ class UploadResponse:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UploadResponse:
-        data = payload["data"]
+        data = payload.get("data")
+        if not data:
+            raise ValueError("UploadResponse: missing 'data' field")
         return cls(
-            msg=str(payload["msg"]),
-            status=int(payload["status"]),
-            server_time=str(payload["server_time"]),
-            data=UploadData(
-                filecode=str(data["filecode"]),
-                title=str(data["title"]),
-                size=int(data["size"]),
-            ),
+            msg=str(payload.get("msg", "")),
+            status=int(payload.get("status", 0)),
+            server_time=str(payload.get("server_time", "")),
+            data=UploadData.from_dict(data),
         )
 
 
@@ -90,12 +101,19 @@ class MasterLinkResponse:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> MasterLinkResponse:
-        subtitles = tuple(StreamSubtitle.from_dict(item) for item in payload.get("subtitles", []))
+        filecode = payload.get("filecode")
+        streaming_url = payload.get("streaming_url")
+        if not filecode:
+            raise ValueError("MasterLinkResponse: missing 'filecode' field")
+        if not streaming_url:
+            raise ValueError("MasterLinkResponse: missing 'streaming_url' field")
+        subtitles_data = payload.get("subtitles", [])
+        subtitles = tuple(StreamSubtitle.from_dict(item) for item in subtitles_data) if subtitles_data else ()
         return cls(
-            filecode=str(payload["filecode"]),
-            streaming_url=str(payload["streaming_url"]),
-            title=str(payload["title"]),
-            thumbnail=str(payload["thumbnail"]),
+            filecode=str(filecode),
+            streaming_url=str(streaming_url),
+            title=str(payload.get("title", "")),
+            thumbnail=str(payload.get("thumbnail", "")),
             default_sub_lang=str(payload.get("default_sub_lang", "")),
             vast_ads=str(payload.get("vast_ads", "")),
             subtitles=subtitles,

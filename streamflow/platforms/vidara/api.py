@@ -48,18 +48,18 @@ def upload_from_url(
     http_status = int(response.status_code)
 
     if http_status >= 400:
-        raise VidaraAPIError(
-            f"Vidara API request failed with HTTP {http_status}",
-            status=http_status,
-            body=raw,
-        )
+        error_msg = f"Vidara API request failed with HTTP {http_status}"
+        try:
+            error_data = json.loads(raw)
+            error_msg = error_data.get("msg", "Vidara API error") if error_data else error_msg
+        except (json.JSONDecodeError, ValueError):
+            pass
+        raise VidaraAPIError(error_msg, status=http_status, body=raw)
 
     payload: dict[str, Any] = json.loads(raw)
-    if int(payload.get("status", 0)) != 200:
-        raise VidaraAPIError(
-            str(payload.get("msg", "Vidara API returned a non-OK status")),
-            status=int(payload.get("status", 0)),
-            body=raw,
-        )
+    api_status = int(payload.get("status", 0))
+    if api_status != 200:
+        error_msg = payload.get("msg", "Vidara API returned a non-OK status")
+        raise VidaraAPIError(error_msg, status=api_status, body=raw)
 
     return UploadResponse.from_dict(payload)

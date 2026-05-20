@@ -47,19 +47,19 @@ def voe_get(
     http_status = int(response.status_code)
 
     if http_status >= 400:
-        raise VoeAPIError(
-            f"VOE API request failed with HTTP {http_status}",
-            status=http_status,
-            body=raw,
-        )
+        error_msg = "VOE API request failed"
+        try:
+            error_data = json.loads(raw)
+            error_msg = error_data.get("msg") or error_data.get("message") or error_msg
+        except (json.JSONDecodeError, ValueError):
+            error_msg = raw if raw else error_msg
+        raise VoeAPIError(error_msg, status=http_status, body=raw)
 
     payload: dict[str, Any] = json.loads(raw)
-    if int(payload.get("status", 0)) != 200 or not payload.get("success"):
-        raise VoeAPIError(
-            str(payload.get("msg") or payload.get("message") or "VOE API returned a non-OK status"),
-            status=int(payload.get("status", 0)),
-            body=raw,
-        )
+    api_status = int(payload.get("status", 0))
+    if api_status != 200 or not payload.get("success"):
+        error_msg = payload.get("msg") or payload.get("message") or "VOE API returned a non-OK status"
+        raise VoeAPIError(error_msg, status=api_status, body=raw)
 
     return payload
 

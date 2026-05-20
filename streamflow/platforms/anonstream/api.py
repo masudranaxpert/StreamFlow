@@ -53,11 +53,13 @@ def anonstream_get(
     http_status = int(response.status_code)
 
     if http_status >= 400:
-        raise AnonstreamAPIError(
-            f"Anonstream API request failed with HTTP {http_status}",
-            status=http_status,
-            body=raw,
-        )
+        error_msg = f"Anonstream API request failed with HTTP {http_status}"
+        try:
+            error_data = json.loads(raw)
+            error_msg = error_data.get("msg") or error_data.get("message") or error_msg
+        except (json.JSONDecodeError, ValueError):
+            pass
+        raise AnonstreamAPIError(error_msg, status=http_status, body=raw)
 
     try:
         payload: dict[str, Any] = json.loads(raw)
