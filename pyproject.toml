@@ -13,6 +13,9 @@ dependencies = [
     "pycryptodome>=3.20.0",
 ]
 
+[project.scripts]
+streamflow = "streamflow.__main__:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
