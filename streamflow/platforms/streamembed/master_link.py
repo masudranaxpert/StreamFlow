@@ -220,10 +220,11 @@ def get_master_link(
         if master_txt:
             # cf_url itself is master.txt, fetch it to get master.m3u8
             try:
-                resp = browser_get(master_txt, api=True, timeout=timeout)
+                resp = browser_get(master_txt, api=False, timeout=timeout)
                 if resp.status_code == 200:
                     master_url = resp.text.strip()
                 else:
+                    logger.warning(f"Failed to fetch master.txt: status {resp.status_code}")
                     master_url = ""
             except Exception as e:
                 logger.warning(f"Failed to fetch master.txt from cf_url: {e}")
@@ -231,19 +232,22 @@ def get_master_link(
         else:
             # cf_url is not master.txt, fetch it to find master.txt inside
             try:
-                resp = browser_get(cf_url, api=True, timeout=timeout)
+                resp = browser_get(cf_url, api=False, timeout=timeout)
                 if resp.status_code == 200:
                     master_txt = _extract_master_txt_link(resp.text)
                     if master_txt:
                         # Now fetch master.txt to get master.m3u8
-                        resp2 = browser_get(master_txt, api=True, timeout=timeout)
+                        resp2 = browser_get(master_txt, api=False, timeout=timeout)
                         if resp2.status_code == 200:
                             master_url = resp2.text.strip()
                         else:
+                            logger.warning(f"Failed to fetch master.txt: status {resp2.status_code}")
                             master_url = ""
                     else:
+                        logger.warning("No master.txt link found in cf_url response")
                         master_url = ""
                 else:
+                    logger.warning(f"Failed to fetch cf_url: status {resp.status_code}")
                     master_url = ""
             except Exception as e:
                 logger.warning(f"Failed to fetch cf_url: {e}")
@@ -254,15 +258,17 @@ def get_master_link(
         master_txt = _extract_master_txt_link(payload_str)
         if master_txt:
             try:
-                resp = browser_get(master_txt, api=True, timeout=timeout)
+                resp = browser_get(master_txt, api=False, timeout=timeout)
                 if resp.status_code == 200:
                     master_url = resp.text.strip()
                 else:
+                    logger.warning(f"Failed to fetch master.txt from payload: status {resp.status_code}")
                     master_url = ""
             except Exception as e:
                 logger.warning(f"Failed to fetch master.txt from payload: {e}")
                 master_url = ""
         else:
+            logger.warning("No master.txt link found in payload")
             master_url = ""
 
     return StreamembedMasterLink(
