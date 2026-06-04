@@ -18,8 +18,105 @@ VOE provides file management and account operations for voe.sx.
 ## Installation
 
 ```python
-from streamflow.platforms.voe import VOEClient
+from streamflow.platforms.voe import VOEClient, get_master_link
 ```
+
+## get_master_link()
+
+Get the **master link (m3u8 streaming URL)** for a VOE video. This is
+the URL your player loads — it does **not** need an API key, because
+the video is served from the public site, not the JSON API.
+
+```python
+from streamflow.platforms.voe import get_master_link
+
+result = get_master_link("FILECODE")
+print(result.streaming_url)  # the m3u8 URL
+print(result.title)           # video title (when the page exposes it)
+```
+
+### How it works
+
+1. Loads the player page at `{site_base_url}/e/{filecode}` (default
+   `https://voe.sx/e/{filecode}`).
+2. Detects the short JS-redirect bootstrap and follows
+   `window.location.href = "..."` if present.
+3. Locates the encrypted `<script type="application/json">["..."]</script>`
+   payload on the final page.
+4. Reverses VOE's obfuscation chain (ROT13 → delimiter strip → base64
+   decode → Caesar shift by -3 → reverse → base64 decode → JSON).
+5. Returns the `source` field as `streaming_url`.
+
+### Signature
+
+```python
+get_master_link(
+    filecode: str,
+    *,
+    site_base_url: str | None = None,
+    timeout: float = 30.0,
+    tcp_proxy: str | None = None,
+    udp_proxy: str | None = None,
+    local_address: str | None = None,
+    http_version: str | None = None,
+) -> VoeMasterLink
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `filecode` | str | **required** | The VOE filecode (the `XXXX` in `voe.sx/e/XXXX`). |
+| `site_base_url` | str | `None` → `https://voe.sx` | **Site URL** (player host). Use this to point at a VOE mirror domain. Do **not** pass the API base URL here. |
+| `timeout` | float | `30.0` | Request timeout in seconds. |
+| `tcp_proxy` | str | `None` | HTTP CONNECT proxy URL. |
+| `udp_proxy` | str | `None` | SOCKS5 / UDP proxy URL. |
+| `local_address` | str | `None` | Local IP to bind the socket to. |
+| `http_version` | str | `None` | Force `"HTTP/1.1"`, `"HTTP/2"`, or `"HTTP/3"` (the last requires `udp_proxy`). |
+
+### Returns
+
+`VoeMasterLink` (frozen dataclass):
+
+```python
+@dataclass(frozen=True, slots=True)
+class VoeMasterLink:
+    streaming_url: str        # the m3u8 URL the player should load
+    title: str | None = None  # video title from the decrypted config
+```
+
+### Raises
+
+- `VoeAPIError` — when the encrypted script tag isn't found on the
+  page, decryption fails, or the decrypted config has no `source`
+  field. Inspect `err.body` for the truncated upstream HTML.
+
+### Examples
+
+```python
+from streamflow.platforms.voe import get_master_link, VoeAPIError
+
+result = get_master_link("abc123xyz")
+print(result.streaming_url)
+
+result = get_master_link("abc123xyz", site_base_url="https://voe-mirror.example")
+
+result = get_master_link(
+    "abc123xyz",
+    tcp_proxy="http://user:pass@proxy:8080",
+    timeout=60.0,
+)
+
+try:
+    result = get_master_link("badcode")
+except VoeAPIError as exc:
+    print(f"VOE failed: {exc}")
+    print(f"Body snippet: {exc.body!r}")
+```
+
+> The master link flow uses the **Site URL** (`https://voe.sx` by
+> default), not the API Base URL. Don't pass `https://voe.sx/api` here
+> — that endpoint serves JSON, not the player page.
 
 ## VOEClient
 

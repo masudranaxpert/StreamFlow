@@ -62,6 +62,29 @@ def _decrypt_byse_source(enc_str: str) -> dict[str, Any]:
     return json.loads(s) if s else {}
 
 
+def _normalize_host(base_url: str) -> str:
+    """Return the bare host (no scheme, no trailing slash) of ``base_url``."""
+    return (
+        base_url
+        .replace("https://", "")
+        .replace("http://", "")
+        .rstrip("/")
+    )
+
+
+def _looks_like_m3u8(body: str | None) -> bool:
+    """Return True iff ``body`` is the contents of an actual HLS playlist.
+
+    Many Byse hosts are single-page apps that serve their HTML index for
+    *every* unknown path (including ``/media/<x>/master.m3u8``) with
+    ``200 OK``. Status alone is therefore not enough — we must look at
+    the body to make sure it really is an ``#EXTM3U`` playlist.
+    """
+    if not body:
+        return False
+    return body.lstrip().startswith("#EXTM3U")
+
+
 def get_master_link(
     filecode: str,
     *,
@@ -76,38 +99,50 @@ def get_master_link(
     device_id: str | None = None,
     token: str | None = None,
     fingerprint: str | None = None,
+    use_hardcoded_master_url: bool = False,
 ) -> ByseMasterLink:
     """Get master link for a Byse filecode.
-    
+
+    By default this resolver goes **straight to the video page** at
+    ``{base_url}/d/{filecode}`` and extracts the streaming URL from the
+    embedded (encrypted) sources. The legacy "guess the URL by following
+    a hardcoded ``/media/{filecode}/master.m3u8`` pattern" path is
+    available as an opt-in via ``use_hardcoded_master_url=True``.
+
     Args:
-        filecode: The file code to get master link for
-        api_key: Optional API key for authenticated requests
-        base_url: Base URL (default: https://byse.sx)
-        timeout: Request timeout
-        tcp_proxy: TCP proxy URL
-        udp_proxy: UDP proxy URL
-        local_address: Local address to bind to
-        http_version: HTTP version (HTTP/1.1, HTTP/2, HTTP/3)
-        viewer_id: Optional viewer ID from challenge flow
-        device_id: Optional device ID from challenge flow
-        token: Optional token from challenge flow
-        fingerprint: Optional fingerprint from challenge flow
-    
+        filecode: The file code to get master link for.
+        api_key: Optional API key for authenticated requests.
+        base_url: Base URL (default: ``https://byse.sx``).
+        timeout: Request timeout.
+        tcp_proxy: TCP proxy URL.
+        udp_proxy: UDP proxy URL.
+        local_address: Local address to bind to.
+        http_version: HTTP version (``HTTP/1.1``, ``HTTP/2``, ``HTTP/3``).
+        viewer_id: Optional viewer ID from challenge flow.
+        device_id: Optional device ID from challenge flow.
+        token: Optional token from challenge flow.
+        fingerprint: Optional fingerprint from challenge flow.
+        use_hardcoded_master_url: If ``True``, *also* try the legacy
+            ``/media/{filecode}/master.m3u8`` URL pattern first and
+            return it when the body actually looks like an ``#EXTM3U``
+            playlist. The response body is content-verified, so a 200
+            OK that returns the SPA's HTML index will *not* be returned
+            as a streaming URL. Defaults to ``False``.
+
     Returns:
-        ByseMasterLink with streaming URL and metadata
+        ``ByseMasterLink`` with streaming URL and metadata.
     """
-    # Build master link URL
-    master_url = f"https://{base_url.replace('https://', '')}/media/{filecode}/master.m3u8"
-    
+    host = _normalize_host(base_url)
+    fallback_master_url = f"https://{host}/media/{filecode}/master.m3u8"
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
         "Accept": "*/*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": f"https://{base_url.replace('https://', '')}/d/{filecode}",
-        "Origin": f"https://{base_url.replace('https://', '')}",
+        "Referer": f"https://{host}/d/{filecode}",
+        "Origin": f"https://{host}",
     }
 
-    # Add optional authentication headers if provided
     if viewer_id or device_id:
         cookies = []
         if viewer_id:
@@ -123,34 +158,32 @@ def get_master_link(
         local_address=local_address,
         http_version=http_version,
     ) as session:
-        # Try master link first
-        try:
-            resp = session.get(master_url, headers=headers, timeout=int(timeout))
-            if resp.status_code == 200:
-                return ByseMasterLink(
-                    filecode=filecode,
-                    title=None,
-                    streaming_url=master_url,
-                    thumbnail=None,
-                )
-        except Exception:
-            pass
+        if use_hardcoded_master_url:
+            try:
+                resp = session.get(fallback_master_url, headers=headers, timeout=int(timeout))
+                if resp.status_code == 200 and _looks_like_m3u8(resp.text):
+                    return ByseMasterLink(
+                        filecode=filecode,
+                        title=None,
+                        streaming_url=fallback_master_url,
+                        thumbnail=None,
+                    )
+            except Exception:
+                pass
 
-        # Fallback: try video page and decrypt sources
-        video_url = f"https://{base_url.replace('https://', '')}/d/{filecode}"
+        video_url = f"https://{host}/d/{filecode}"
         try:
             resp = session.get(video_url, headers=headers, timeout=int(timeout))
             if resp.status_code == 200:
                 html = resp.text
-                
-                # Look for encrypted source in script tags
+
                 patterns = [
                     r'sources\s*:\s*\[\{file:"([^"]+)"',
                     r'"sources"\s*:\s*\[.*?"file"\s*:\s*"([^"]+)"',
                     r'decodeURIComponent\("([^"]+)"\)',
                     r'atob\("([^"]+)"\)',
                 ]
-                
+
                 for pattern in patterns:
                     match = re.search(pattern, html, re.DOTALL)
                     if match:
@@ -162,29 +195,27 @@ def get_master_link(
                                 return ByseMasterLink(
                                     filecode=filecode,
                                     title=decrypted.get("title"),
-                                    streaming_url=source.get("file", master_url),
+                                    streaming_url=source.get("file", ""),
                                     thumbnail=decrypted.get("image") or source.get("image"),
                                 )
                         except Exception:
                             continue
 
-                # Try to find thumbnail
                 thumb_match = re.search(r'"image"\s*:\s*"([^"]+)"', html)
                 thumbnail = thumb_match.group(1) if thumb_match else None
 
                 return ByseMasterLink(
                     filecode=filecode,
                     title=None,
-                    streaming_url=master_url,
+                    streaming_url="",
                     thumbnail=thumbnail,
                 )
         except Exception:
             pass
 
-    # Ultimate fallback
     return ByseMasterLink(
         filecode=filecode,
         title=None,
-        streaming_url=master_url,
+        streaming_url="",
         thumbnail=None,
     )

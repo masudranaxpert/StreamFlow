@@ -32,7 +32,7 @@ print(f"Task ID: {upload.id}")
 | Platform | Providers | Description |
 |----------|-----------|-------------|
 | StreamEmbed | seekstreaming, streamp2p, player4me | Master link + upload API |
-| VOE | voe.sx | Account stats, file management |
+| VOE | voe.sx | Account stats, file management, master link (m3u8) |
 | Byse | byse.sx | Upload, file management, master link |
 | Anonstream | anonstream.co | Remote upload, file management |
 | Vidara | vidara.so | Video upload, HLS streaming |

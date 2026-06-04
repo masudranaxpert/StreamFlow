@@ -23,7 +23,7 @@ once before scrolling down:
 | Platform | Default API Base URL | Description |
 |----------|----------------------|-------------|
 | [StreamEmbed](streamembed.md) | `https://seekstreaming.com/api/v1` | Master link + upload API (seekstreaming / streamp2p / player4me) |
-| [VOE](voe.md) | `https://voe.sx/api` | Account stats, file management |
+| [VOE](voe.md) | `https://voe.sx/api` | Account stats, file management, master link (m3u8) |
 | [Anonstream](anonstream.md) | `https://anonstream.co` (`/api/*` prefixed automatically) | Remote upload, file management |
 | [Byse](byse.md) | `https://api.byse.sx` | Upload, file management, master link |
 | [Vidara](vidara.md) | `https://api.vidara.so/v1` | Video upload, HLS streaming |
@@ -52,11 +52,12 @@ StreamEmbed provides master link resolution (get m3u8 streaming URLs) and advanc
 
 ## VOE
 
-VOE provides account management and file operations for voe.sx.
+VOE provides account management, file operations, and master link
+resolution for voe.sx.
 
 - **Provider:** voe.sx
 - **API Base URL** *(JSON API: account, files, upload)*: `https://voe.sx/api`
-- **Site URL** *(player / `/e/{filecode}` embed page)*: `https://voe.sx`
+- **Site URL** *(player / `/e/{filecode}` embed page / master link)*: `https://voe.sx`
 
 **Features:**
 - Account statistics
@@ -64,6 +65,9 @@ VOE provides account management and file operations for voe.sx.
 - File deletion
 - Purge all files
 - Upload URL generation
+- **Master link (m3u8) resolution** via `get_master_link()` — scrapes
+  the player page at `/e/{filecode}` and decrypts the obfuscated
+  source. No API key required.
 
 ## Anonstream
 

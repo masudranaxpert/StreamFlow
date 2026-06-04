@@ -10,7 +10,7 @@ from streamflow.platforms.voe import get_master_link
 result = get_master_link(
     filecode: str,
     *,
-    base_url: str | None = None,
+    site_base_url: str | None = None,
     timeout: float = 30.0,
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
@@ -19,21 +19,27 @@ result = get_master_link(
 ) -> VoeMasterLink
 ```
 
-Get video master link.
+Get the m3u8 master link for a VOE video by scraping and decrypting
+the player page at `{site_base_url}/e/{filecode}`. **No API key
+required.**
 
 **Parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `filecode` | str | required | Video filecode |
-| `base_url` | str | None | Override site URL |
-| `timeout` | float | 30.0 | Request timeout |
-| `tcp_proxy` | str | None | TCP proxy |
-| `udp_proxy` | str | None | UDP proxy |
-| `local_address` | str | None | Local address |
-| `http_version` | str | None | HTTP version |
+| `filecode` | str | required | Video filecode (the `XXXX` in `voe.sx/e/XXXX`) |
+| `site_base_url` | str | `None` → `https://voe.sx` | Site URL (player host). Do not pass the API base URL here. |
+| `timeout` | float | `30.0` | Request timeout (seconds) |
+| `tcp_proxy` | str | `None` | HTTP CONNECT proxy URL |
+| `udp_proxy` | str | `None` | SOCKS5 / UDP proxy URL |
+| `local_address` | str | `None` | Local bind address |
+| `http_version` | str | `None` | Force `"HTTP/1.1"`, `"HTTP/2"`, or `"HTTP/3"` |
 
-**Returns:** `VoeMasterLink` object.
+**Returns:** `VoeMasterLink` with `streaming_url` (m3u8) and optional
+`title`.
+
+**Raises:** `VoeAPIError` if the encrypted script isn't found,
+decryption fails, or the decrypted config has no `source` field.
 
 ### get_account_stats()
 
@@ -319,13 +325,10 @@ result = client.purge_all(
 ### VoeMasterLink
 
 ```python
-@dataclass
+@dataclass(frozen=True, slots=True)
 class VoeMasterLink:
-    filecode: str
-    title: str | None
-    streaming_url: str
-    thumbnail: str | None
-    master_url: str | None = None
+    streaming_url: str        # the m3u8 URL the player should load
+    title: str | None = None  # video title from the decrypted config
 ```
 
 ### AccountStatsResponse

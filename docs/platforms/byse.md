@@ -124,6 +124,12 @@ client.delete_file("abc123")
 
 Get the master link (m3u8 streaming URL) for a file.
 
+By default the resolver goes **straight to the video page** at
+`{base_url}/d/{filecode}` and extracts the streaming URL from the
+embedded (encrypted) sources. This is the right behavior for the
+canonical `byse.sx` host and any mirror that ships the same
+single-page-app frontend.
+
 ### Simple Usage
 
 ```python
@@ -146,20 +152,53 @@ result = get_master_link(
 )
 ```
 
+### Legacy `/media/.../master.m3u8` shortcut (opt-in)
+
+Some older Byse deployments expose the playlist directly at
+`{host}/media/{filecode}/master.m3u8`. Pass `use_hardcoded_master_url=True`
+to try that pattern *first*. The body is **content-verified** — if the
+response is not an actual `#EXTM3U` playlist (for example, an SPA host
+that returns its HTML index for unknown paths with `200 OK`), the
+shortcut is skipped and the resolver falls back to scraping the video
+page as usual.
+
+```python
+result = get_master_link(
+    "FILECODE",
+    base_url="https://byse.sx",
+    use_hardcoded_master_url=True,
+)
+```
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `file_code` | str | **Required** | The file code |
+| `filecode` | str | **Required** | The file code |
+| `base_url` | str | `"https://byse.sx"` | Site URL (player / master link host) |
 | `viewer_id` | str | `None` | Viewer ID for challenge auth |
-| `device_id` | str | `None** | Device ID for challenge auth |
+| `device_id` | str | `None` | Device ID for challenge auth |
 | `token` | str | `None` | Auth token |
 | `fingerprint` | str | `None` | Device fingerprint |
-| `base_url` | str | `None` | Custom API base URL |
+| `timeout` | float | `30.0` | Request timeout (seconds) |
+| `tcp_proxy` | str | `None` | HTTP CONNECT proxy URL |
+| `udp_proxy` | str | `None` | SOCKS5 / UDP proxy URL |
+| `local_address` | str | `None` | Local IP to bind |
+| `http_version` | str | `None` | Force HTTP version |
+| `use_hardcoded_master_url` | bool | `False` | Try the legacy `/media/{filecode}/master.m3u8` URL first (content-verified). |
 
 **Returns:** `ByseMasterLink` object with:
 - `.filecode` - file code
 - `.title` - video title (or None)
-- `.streaming_url` - m3u8 streaming URL
+- `.streaming_url` - m3u8 streaming URL (empty string if extraction failed)
 - `.thumbnail` - thumbnail URL (or None)
+
+> **Behavior change in 2.0.0:** previous versions silently fell back to
+> the hardcoded URL `https://{host}/media/{filecode}/master.m3u8`
+> whenever extraction from the page failed — even when that URL
+> actually returned an HTML index page (200 OK with `Content-Type:
+> text/html`). The resolver now (a) skips the URL pattern by default
+> and (b) requires the body to start with `#EXTM3U` before returning
+> it as a streaming URL. If you relied on the old behavior, pass
+> `use_hardcoded_master_url=True` explicitly.
 
 ### ByseMasterLink Model
 
