@@ -2,6 +2,19 @@
 
 Video upload, file management, account stats, and master link resolution for Byse platform.
 
+## Default URLs
+
+| URL | Value | What it's for |
+|-----|-------|---------------|
+| **API Base URL** (`base_url=` on `ByseClient`) | `https://api.byse.sx` | JSON API: `account_stats`, `add_remote`, `list_files`, `delete_file`. |
+| **Site URL** (`base_url=` on `get_master_link`) | `https://byse.sx` | Master link endpoint and the player / embed page. This is where viewers actually watch. |
+
+> Byse splits the API and the site onto **different hosts**:
+> `api.byse.sx` serves only the JSON API, while `byse.sx` serves the
+> master link and the player. Don't aim `ByseClient(base_url=...)` at
+> `byse.sx` or `get_master_link(base_url=...)` at `api.byse.sx` — the
+> defaults are already correct.
+
 ## Installation
 
 ```bash
@@ -215,4 +228,21 @@ files = client.list_files(page=1, per_page=10)
 for f in files:
     if f.name.startswith("temp_"):
         client.delete_file(f.filecode)
+```
+
+## Constants
+
+```python
+from streamflow.platforms.byse.constants import (
+    DEFAULT_BASE_URL,  # "https://api.byse.sx"
+)
+
+from streamflow.platforms.byse.constants import (
+    api_url,                # api_url(endpoint) -> "{base}/{endpoint}"
+    resolve_base_url,       # resolve_base_url(override) -> base URL
+    account_stats_endpoint, # https://api.byse.sx/account/stats
+    remote_add_endpoint,    # https://api.byse.sx/remote/add
+    file_list_endpoint,     # https://api.byse.sx/file/list
+    file_delete_endpoint,   # https://api.byse.sx/file/delete
+)
 ```

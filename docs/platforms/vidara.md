@@ -2,6 +2,17 @@
 
 Video upload and HLS master link resolution for Vidara platform.
 
+## Default URLs
+
+| URL | Value | What it's for |
+|-----|-------|---------------|
+| **API Base URL** (`base_url=`) | `https://api.vidara.so/v1` | Upload JSON API: `upload`, `upload_server`. |
+| **Site URL** (`site_base_url=`) | `https://vidara.so` | HLS stream endpoint (`/api/stream`), player / `/e/{filecode}` embed page. This is where viewers actually watch. |
+
+> The two hosts are different (`api.vidara.so` vs `vidara.so`) — passing
+> the wrong one to the wrong parameter will fail. The defaults are
+> already correct; you usually don't need to override either.
+
 ## Installation
 
 ```bash

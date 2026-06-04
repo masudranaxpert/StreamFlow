@@ -4,11 +4,26 @@ StreamEmbed provides master link resolution and video upload functionality for m
 
 ## Providers
 
-| Provider | Base URL |
-|----------|----------|
-| `seekstreaming` | https://seekstreaming.com |
-| `streamp2p` | https://streamp2p.com |
-| `player4me` | https://player4me.com |
+All three providers share the same `/api/v1` API surface; only the host
+differs. The library's default points at `seekstreaming.com`.
+
+| Provider | Site URL *(player / master link / embed)* | API Base URL *(JSON: upload, status)* |
+|----------|-------------------------------------------|---------------------------------------|
+| `seekstreaming` | `https://seekstreaming.com` | `https://seekstreaming.com/api/v1` *(default)* |
+| `streamp2p` | `https://streamp2p.com` | `https://streamp2p.com/api/v1` |
+| `player4me` | `https://player4me.com` | `https://player4me.com/api/v1` |
+
+**Which URL goes where:**
+
+| You're calling… | Pass this URL | Parameter |
+|-----------------|---------------|-----------|
+| `get_master_link(filecode, …)` — get the `m3u8` streaming URL | **Site URL** (e.g. `https://seekstreaming.com`) | `base_url=` *(on this function, `base_url` is the site URL)* |
+| `embed_url(filecode, …)` — build a `/embed/{filecode}` page link | **Site URL** | `site_base_url=` |
+| `StreamembedClient(...)` / `advance_upload(...)` / `get_upload_task(...)` | **API Base URL** (e.g. `https://seekstreaming.com/api/v1`) | `base_url=` |
+
+> The Site URL is what your viewer's browser hits to watch the video
+> (player page, embed page, the master `.m3u8`). The API Base URL is
+> only used by your server to talk to the upload/management API.
 
 ## Installation
 
@@ -107,6 +122,7 @@ client = StreamembedClient(
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
     local_address: str | None = None,
+    auth_header: str = "api-token",
 )
 ```
 
@@ -120,6 +136,40 @@ client = StreamembedClient(
 | `tcp_proxy` | str | None | TCP proxy URL |
 | `udp_proxy` | str | None | UDP proxy URL |
 | `local_address` | str | None | Local bind address |
+| `auth_header` | str | `"api-token"` | HTTP header name carrying the API key. See [Authentication](#authentication). |
+
+### Authentication
+
+By default, `StreamembedClient` (and the underlying `advance_upload` /
+`get_upload_task` functions) send the API key in the **`api-token`**
+HTTP header — this is what `seekstreaming.com`, `streamp2p.com` and
+`player4me.com` expect:
+
+```
+api-token: YOUR_API_KEY
+```
+
+> **Note:** Earlier StreamFlow releases sent `Authorization: Bearer ...`,
+> which caused `401 Invalid credentials` against these providers. The
+> default is now `api-token`.
+
+If you ever talk to a deployment that uses a different scheme (for
+example, a fork that expects the old Bearer header), override the
+header name with the `auth_header` parameter:
+
+```python
+# Default — sends "api-token: YOUR_API_KEY"
+client = StreamembedClient(api_key="YOUR_API_KEY")
+
+# Custom header name
+client = StreamembedClient(api_key="YOUR_API_KEY", auth_header="X-Api-Key")
+
+# Bearer scheme — prepend "Bearer " to the key yourself
+client = StreamembedClient(
+    api_key="Bearer YOUR_API_KEY",
+    auth_header="Authorization",
+)
+```
 
 ### Client Methods
 

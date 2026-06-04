@@ -60,6 +60,7 @@ response = advance_upload(
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
     local_address: str | None = None,
+    auth_header: str = "api-token",
 ) -> AdvanceUploadResponse
 ```
 
@@ -77,6 +78,7 @@ Create advance upload task.
 | `tcp_proxy` | str | None | TCP proxy |
 | `udp_proxy` | str | None | UDP proxy |
 | `local_address` | str | None | Local address |
+| `auth_header` | str | `"api-token"` | HTTP header name to send the API key in. See [Authentication](#authentication). |
 
 **Returns:** `AdvanceUploadResponse`
 
@@ -94,6 +96,7 @@ response = get_upload_task(
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
     local_address: str | None = None,
+    auth_header: str = "api-token",
 ) -> AdvanceUploadDetailResponse
 ```
 
@@ -110,8 +113,46 @@ Get upload task status.
 | `tcp_proxy` | str | None | TCP proxy |
 | `udp_proxy` | str | None | UDP proxy |
 | `local_address` | str | None | Local address |
+| `auth_header` | str | `"api-token"` | HTTP header name to send the API key in. See [Authentication](#authentication). |
 
 **Returns:** `AdvanceUploadDetailResponse`
+
+### Authentication
+
+All upload endpoints authenticate by sending the API key in an HTTP
+header. The default header name is **`api-token`**, which is what
+`seekstreaming.com`, `streamp2p.com` and `player4me.com` require:
+
+```
+api-token: YOUR_API_KEY
+```
+
+The header name is configurable via the `auth_header` parameter
+(available on `advance_upload`, `get_upload_task`, and
+`StreamembedClient`). The exported constant `DEFAULT_AUTH_HEADER`
+exposes the default value:
+
+```python
+from streamflow.platforms.streamembed import DEFAULT_AUTH_HEADER
+assert DEFAULT_AUTH_HEADER == "api-token"
+```
+
+To use a different scheme (e.g. legacy Bearer), pass `auth_header` and
+include any required prefix in the key itself:
+
+```python
+advance_upload(
+    api_key="Bearer YOUR_API_KEY",
+    url="https://example.com/video.mp4",
+    auth_header="Authorization",
+)
+```
+
+> **Migration note:** StreamFlow previously sent
+> `Authorization: Bearer ...` by default, which produced
+> `401 Invalid credentials` against these providers. The default has
+> been changed to `api-token`. No code change is required for the
+> common case.
 
 ## Client
 
@@ -222,6 +263,7 @@ class StreamembedAPIError(Exception):
 from streamflow.platforms.streamembed import (
     DEFAULT_API_BASE_URL,  # "https://seekstreaming.com/api/v1"
     DEFAULT_SITE_URL,       # "https://seekstreaming.com"
+    DEFAULT_AUTH_HEADER,    # "api-token"
     AES_KEY_HEX,            # AES encryption key hex
     AES_IV_HEX,             # AES IV hex
     DEFAULT_TIMEOUT,        # 30.0

@@ -33,6 +33,27 @@ print(f"Task ID: {upload.id}")
 |----------|-----------|-------------|
 | StreamEmbed | seekstreaming, streamp2p, player4me | Master link + upload API |
 | VOE | voe.sx | Account stats, file management |
+| Byse | byse.sx | Upload, file management, master link |
+| Anonstream | anonstream.co | Remote upload, file management |
+| Vidara | vidara.so | Video upload, HLS streaming |
+
+## Two URLs per platform (read this once)
+
+Every platform that has both a "play here" page **and** a JSON API
+exposes them on **two separate hosts** (or two separate path prefixes).
+StreamFlow follows the same naming everywhere — do not confuse them:
+
+| Term | Meaning | Used by |
+|------|---------|---------|
+| **API Base URL** (`base_url=`) | Host + prefix where authenticated JSON calls live. E.g. `https://voe.sx/api`, `https://seekstreaming.com/api/v1`, `https://api.byse.sx`. | Upload, listing, stats, delete, account methods. |
+| **Site URL** (`site_base_url=`) | Host that serves the **video player, the embed/`/e/{filecode}` page, and the master link** that resolves to an `m3u8`. E.g. `https://voe.sx`, `https://seekstreaming.com`, `https://vidara.so`. | `get_master_link()`, `embed_url(filecode)`, anywhere a viewer would actually watch the video. |
+
+> **Rule of thumb:** if it returns an `.m3u8` or an `/e/...` page, it
+> needs the **Site URL**. If it returns JSON, it needs the
+> **API Base URL**.
+
+See the [Platforms](platforms/index.md) page for the exact defaults of
+each provider.
 
 ## Installation
 

@@ -161,6 +161,7 @@ class TeststreamembedClient:
         assert client.tcp_proxy is None
         assert client.udp_proxy is None
         assert client.local_address is None
+        assert client.auth_header == "api-token"
 
     def test_client_custom_base_url(self) -> None:
         from streamflow.platforms.streamembed.client import StreamembedClient
@@ -180,6 +181,100 @@ class TeststreamembedClient:
         assert client.tcp_proxy == "http://proxy:8080"
         assert client.udp_proxy == "socks5://proxy:1080"
         assert client.local_address == "192.168.1.100"
+
+    def test_client_custom_auth_header(self) -> None:
+        from streamflow.platforms.streamembed.client import StreamembedClient
+
+        client = StreamembedClient(api_key="test_key", auth_header="Authorization")
+        assert client.auth_header == "Authorization"
+
+
+class TeststreamembedAuth:
+    """Test auth header behavior."""
+
+    def test_default_auth_header_constant(self) -> None:
+        from streamflow.platforms.streamembed import DEFAULT_AUTH_HEADER
+        from streamflow.platforms.streamembed.api import DEFAULT_AUTH_HEADER as API_DEFAULT
+
+        assert DEFAULT_AUTH_HEADER == "api-token"
+        assert API_DEFAULT == "api-token"
+
+    def test_advance_upload_sends_api_token_header_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Regression: must NOT send `Authorization: Bearer ...` by default."""
+        from streamflow.platforms.streamembed import api as api_module
+
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            status_code = 200
+            text = '{"id": "task123"}'
+
+        def _fake_post(url, *, json, **kwargs):  # type: ignore[no-untyped-def]
+            captured["url"] = url
+            captured["json"] = json
+            captured["kwargs"] = kwargs
+            return _FakeResponse()
+
+        monkeypatch.setattr(api_module, "browser_post", _fake_post)
+
+        result = api_module.advance_upload("MY_KEY", "https://example.com/video.mp4")
+
+        assert result.id == "task123"
+        kwargs = captured["kwargs"]
+        assert isinstance(kwargs, dict)
+        assert kwargs.get("api-token") == "MY_KEY"
+        assert "Authorization" not in kwargs
+
+    def test_advance_upload_respects_custom_auth_header(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from streamflow.platforms.streamembed import api as api_module
+
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            status_code = 200
+            text = '{"id": "task123"}'
+
+        def _fake_post(url, *, json, **kwargs):  # type: ignore[no-untyped-def]
+            captured["kwargs"] = kwargs
+            return _FakeResponse()
+
+        monkeypatch.setattr(api_module, "browser_post", _fake_post)
+
+        api_module.advance_upload(
+            "Bearer MY_KEY",
+            "https://example.com/video.mp4",
+            auth_header="Authorization",
+        )
+
+        kwargs = captured["kwargs"]
+        assert isinstance(kwargs, dict)
+        assert kwargs.get("Authorization") == "Bearer MY_KEY"
+        assert "api-token" not in kwargs
+
+    def test_get_upload_task_sends_api_token_header_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from streamflow.platforms.streamembed import api as api_module
+
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            status_code = 200
+            text = (
+                '{"id": "task123", "name": "n", "status": "ok",'
+                ' "videos": [], "updated_at": null, "created_at": null}'
+            )
+
+        def _fake_get(url, **kwargs):  # type: ignore[no-untyped-def]
+            captured["kwargs"] = kwargs
+            return _FakeResponse()
+
+        monkeypatch.setattr(api_module, "browser_get", _fake_get)
+
+        api_module.get_upload_task("MY_KEY", "task123")
+
+        kwargs = captured["kwargs"]
+        assert isinstance(kwargs, dict)
+        assert kwargs.get("api-token") == "MY_KEY"
+        assert "Authorization" not in kwargs
 
 
 class TeststreamembedMasterLink:

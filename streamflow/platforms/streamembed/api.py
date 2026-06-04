@@ -17,6 +17,8 @@ from streamflow.platforms.streamembed.models import (
     AdvanceUploadResponse,
 )
 
+DEFAULT_AUTH_HEADER = "api-token"
+
 
 class StreamembedAPIError(Exception):
     """API error exception."""
@@ -60,8 +62,15 @@ def advance_upload(
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
     local_address: str | None = None,
+    auth_header: str = DEFAULT_AUTH_HEADER,
 ) -> AdvanceUploadResponse:
-    """Create advanced upload task. POST /api/v1/video/advance-upload."""
+    """Create advanced upload task. POST /api/v1/video/advance-upload.
+
+    The ``auth_header`` parameter controls which HTTP header carries the
+    API key. Default is ``"api-token"`` (required by seekstreaming /
+    streamp2p / player4me). Set to ``"Authorization"`` (and prefix the
+    key with ``"Bearer "`` yourself) to use a Bearer scheme instead.
+    """
     endpoint = advance_upload_endpoint(base_url)
     payload: dict[str, Any] = {"url": url}
     if name:
@@ -76,7 +85,7 @@ def advance_upload(
             tcp_proxy=tcp_proxy,
             udp_proxy=udp_proxy,
             local_address=local_address,
-            Authorization=f"Bearer {api_key}",
+            **{auth_header: api_key},
         )
         raw = response.text
         http_status = int(response.status_code)
@@ -97,8 +106,12 @@ def get_upload_task(
     tcp_proxy: str | None = None,
     udp_proxy: str | None = None,
     local_address: str | None = None,
+    auth_header: str = DEFAULT_AUTH_HEADER,
 ) -> AdvanceUploadDetailResponse:
-    """Get upload task detail. GET /api/v1/video/advance-upload/{id}."""
+    """Get upload task detail. GET /api/v1/video/advance-upload/{id}.
+
+    See :func:`advance_upload` for ``auth_header`` semantics.
+    """
     endpoint = advance_upload_detail_endpoint(task_id, base_url)
 
     try:
@@ -109,7 +122,7 @@ def get_upload_task(
             tcp_proxy=tcp_proxy,
             udp_proxy=udp_proxy,
             local_address=local_address,
-            Authorization=f"Bearer {api_key}",
+            **{auth_header: api_key},
         )
         raw = response.text
         http_status = int(response.status_code)

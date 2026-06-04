@@ -2,6 +2,19 @@
 
 VOE provides file management and account operations for voe.sx.
 
+## Default URLs
+
+| URL | Value | What it's for |
+|-----|-------|---------------|
+| **API Base URL** (`base_url=`) | `https://voe.sx/api` | All JSON calls: `account_stats`, `list_files`, `upload`, `delete_files`, `purge_all`, `upload_server`. |
+| **Site URL** (`site_base_url=`) | `https://voe.sx` | The video player / `/e/{filecode}` embed page (`file_page_url(filecode)`). This is the host your viewers actually hit. |
+
+> Don't pass the Site URL to `base_url=` — the JSON API isn't served
+> from the bare `voe.sx` host; it lives under `/api`. The library's
+> default (`DEFAULT_API_BASE_URL = "https://voe.sx/api"`) already
+> includes the `/api` segment, so you normally don't need to override
+> anything.
+
 ## Installation
 
 ```python
@@ -257,7 +270,17 @@ except VoeAPIError as e:
 
 ```python
 from streamflow.platforms.voe.constants import (
-    DEFAULT_API_BASE_URL,  # "https://voe.sx"
-    DEFAULT_API_PATH,      # "/api/v1"
+    DEFAULT_API_BASE_URL,   # "https://voe.sx/api"
+    DEFAULT_SITE_BASE_URL,  # "https://voe.sx"
+    UPLOAD_URL_PATH,        # "/upload/url"
+    UPLOAD_SERVER_PATH,     # "/upload/server"
+    ACCOUNT_STATS_PATH,     # "/account/stats"
+    FILE_LIST_PATH,         # "/file/list"
+    FILE_DELETE_PATH,       # "/file/delete"
+    FILE_PAGE_PATH,         # "/e/{filecode}"
 )
 ```
+
+> The full API endpoint is `DEFAULT_API_BASE_URL` (already including
+> `/api`) concatenated with each `*_PATH`. For example, the account
+> stats endpoint resolves to `https://voe.sx/api/account/stats`.

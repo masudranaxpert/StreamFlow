@@ -423,14 +423,30 @@ class VoeAPIError(Exception):
 
 ```python
 from streamflow.platforms.voe.constants import (
-    DEFAULT_API_BASE_URL,  # "https://voe.sx"
-    DEFAULT_API_PATH,      # "/api/v1"
+    DEFAULT_API_BASE_URL,   # "https://voe.sx/api"
+    DEFAULT_SITE_BASE_URL,  # "https://voe.sx"
+    UPLOAD_URL_PATH,        # "/upload/url"
+    UPLOAD_SERVER_PATH,     # "/upload/server"
+    ACCOUNT_STATS_PATH,     # "/account/stats"
+    FILE_LIST_PATH,         # "/file/list"
+    FILE_DELETE_PATH,       # "/file/delete"
+    FILE_PAGE_PATH,         # "/e/{filecode}"
 )
 
 from streamflow.platforms.voe.constants import (
-    file_page_url(filecode),      # /e/{filecode}
-    api_url(path),                # Build API URL
-    resolve_base_url(),           # Resolve base URL
-    resolve_site_base_url(),       # Resolve site URL
+    file_page_url,         # file_page_url(filecode) -> "{site}/e/{filecode}"
+    api_url,               # api_url(path) -> "{api_base}{path}"
+    resolve_base_url,      # resolve_base_url(override) -> API base URL
+    resolve_site_base_url, # resolve_site_base_url(override) -> site URL
+    upload_url_endpoint,   # https://voe.sx/api/upload/url
+    upload_server_endpoint,# https://voe.sx/api/upload/server
+    account_stats_endpoint,# https://voe.sx/api/account/stats
+    file_list_endpoint,    # https://voe.sx/api/file/list
+    file_delete_endpoint,  # https://voe.sx/api/file/delete
 )
 ```
+
+> `DEFAULT_API_BASE_URL` already includes the `/api` segment. Endpoint
+> functions concatenate the per-action path on top — e.g.
+> `account_stats_endpoint()` resolves to
+> `https://voe.sx/api/account/stats`.

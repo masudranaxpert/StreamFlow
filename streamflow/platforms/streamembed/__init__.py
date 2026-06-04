@@ -1,4 +1,9 @@
-﻿from streamflow.platforms.streamembed.api import StreamembedAPIError, advance_upload, get_upload_task
+﻿from streamflow.platforms.streamembed.api import (
+    DEFAULT_AUTH_HEADER,
+    StreamembedAPIError,
+    advance_upload,
+    get_upload_task,
+)
 from streamflow.platforms.streamembed.client import StreamembedClient
 from streamflow.platforms.streamembed.constants import (
     DEFAULT_API_BASE_URL,
@@ -21,6 +26,7 @@ from streamflow.platforms.streamembed.models import (
 )
 
 __all__ = [
+    "DEFAULT_AUTH_HEADER",
     "StreamembedAPIError",
     "advance_upload",
     "get_upload_task",
