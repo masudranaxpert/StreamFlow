@@ -1,6 +1,6 @@
 [project]
 name = "streamflow"
-version = "2.0.0"
+version = "2.0.1"
 description = "Multi-platform video streaming utilities for Python"
 readme = "README.md"
 authors = [
@@ -11,6 +11,7 @@ dependencies = [
     "httpcloak>=1.6.6",
     "rich>=15.0.0",
     "pycryptodome>=3.20.0",
+    "cryptography>=42.0.0",
 ]
 
 [project.scripts]

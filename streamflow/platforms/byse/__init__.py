@@ -15,7 +15,11 @@ from streamflow.platforms.byse.constants import (
     resolve_base_url,
 )
 from streamflow.platforms.byse.help import PLATFORM_NAME, PLATFORM_TITLE, build_help_text, get_help, show_help
-from streamflow.platforms.byse.master_link import ByseMasterLink, get_master_link
+from streamflow.platforms.byse.master_link import (
+    ByseMasterLink,
+    ByseMasterLinkError,
+    get_master_link,
+)
 from streamflow.platforms.byse.models import (
     AccountStatsResponse,
     FileDeleteResponse,
@@ -30,6 +34,8 @@ __all__ = [
     "AccountStatsResponse",
     "ByseAPIError",
     "ByseClient",
+    "ByseMasterLink",
+    "ByseMasterLinkError",
     "FileDeleteResponse",
     "FileItem",
     "FileListResponse",
@@ -48,6 +54,4 @@ __all__ = [
     "purge_all_files",
     "resolve_base_url",
     "show_help",
-    "ByseMasterLink",
-    "get_master_link",
 ]
