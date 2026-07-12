@@ -1,6 +1,6 @@
 [project]
 name = "streamflow"
-version = "2.0.1"
+version = "2.0.2"
 description = "Multi-platform video streaming utilities for Python"
 readme = "README.md"
 authors = [

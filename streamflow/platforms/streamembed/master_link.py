@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 
 from Crypto.Cipher import AES  # type: ignore
 
@@ -76,39 +75,6 @@ def _decrypt_response(cipher_hex: str, key_hex: str, iv_hex: str) -> dict:
     json_str = unpadded.decode("utf-8", errors="strict")
     import json
     return json.loads(json_str)
-
-
-def _extract_master_txt_link(text: str | None) -> str | None:
-    """Extract master.txt/master txt URL using regex/logic from any text."""
-    if not text:
-        return None
-    pattern = r'https?://[^\s"\'<>]+master\.txt[^\s"\'<>]*'
-    match = re.search(pattern, text)
-    if match:
-        return match.group(0)
-    
-    urls = re.findall(r'https?://[^\s"\'<>]+', text)
-    for url in urls:
-        url_lower = url.lower()
-        if "master" in url_lower and ".txt" in url_lower:
-            return url
-    return None
-
-
-def _build_master_url(base_url: str, path: str) -> str:
-    """Build master.m3u8 URL from decrypted response."""
-    if not path:
-        return ""
-    path = path.strip()
-    if path.startswith("//"):
-        path = "https:" + path
-    elif path.startswith("/"):
-        base = base_url.rstrip("/")
-        return f"{base}{path}"
-    elif not path.startswith("http"):
-        base = base_url.rstrip("/")
-        return f"{base}/{path}"
-    return path
 
 
 def get_master_link(
@@ -200,7 +166,6 @@ def get_master_link(
 
     title = payload.get("title") or None
     thumbnail = payload.get("thumbnail") or payload.get("poster") or None
-    cf_url = payload.get("cf") or None
     swarm_id = payload.get("swarmId") or None
 
     torrent_trackers_list: list[str] | None = None
@@ -216,35 +181,12 @@ def get_master_link(
             ice_servers_list = None
 
     streaming_url = payload.get("source") or payload.get("master") or payload.get("masterUrl") or ""
-    master_url = ""
-
-    if cf_url:
-        master_txt = _extract_master_txt_link(cf_url)
-        if master_txt:
-            master_url = master_txt
-        else:
-            try:
-                resp = browser_get(cf_url, api=False, timeout=timeout)
-                if resp.status_code == 200:
-                    master_txt = _extract_master_txt_link(resp.text)
-                    if master_txt:
-                        master_url = master_txt
-            except Exception as e:
-                logger.warning(f"Failed to fetch cf_url: {e}")
-
-    if not master_url:
-        payload_str = str(payload)
-        master_txt = _extract_master_txt_link(payload_str)
-        if master_txt:
-            master_url = master_txt
 
     return StreamembedMasterLink(
         filecode=filecode,
         title=title,
         streaming_url=streaming_url,
         thumbnail=thumbnail,
-        master_url=master_url,
-        cf_url=cf_url,
         swarm_id=swarm_id,
         torrent_trackers=torrent_trackers_list,
         ice_servers=ice_servers_list,

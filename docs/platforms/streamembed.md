@@ -75,8 +75,6 @@ result = get_master_link(
 - `title` - Video title
 - `streaming_url` - m3u8 streaming URL
 - `thumbnail` - Thumbnail URL
-- `master_url` - Master URL
-- `cf_url` - Cloudflare URL
 - `swarm_id` - Swarm ID
 - `torrent_trackers` - Torrent trackers list
 - `ice_servers` - ICE servers list
